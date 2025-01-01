@@ -9,50 +9,46 @@ export async function GET() {
     </soap:Body>
   </soap:Envelope>`;
 
+  console.log("@@@@@@@@@@@@@@@@@@@@@@@@@@egaaa", process.env);
+
   try {
-    const response = await fetch("http://ed.major-express.ru/edclients2.asmx", {
+    const response = await fetch(process.env.SOAP_ENDPOINT, {
       method: "POST",
       headers: {
         "Content-Type": "text/xml; charset=utf-8",
         SOAPAction: "http://ltl-ws.major-express.ru/edclients/dict_Cities",
-        Authorization: "Basic eW91cjpjcmVkZW50aWFscw==", // Replace with the actual Base64 credentials
+        Authorization: `Basic ${process.env.BASIC_AUTH_CREDENTIALS}`,
       },
       body: soapRequest,
     });
 
     if (!response.ok) {
-      const errorText = await response.text(); // Capture and log error response
+      const errorText = await response.text();
       console.error("Error Response:", errorText);
-      throw new Error("Network response was not ok");
+      throw new Error(`SOAP request failed: ${response.statusText}`);
     }
 
     const data = await response.text();
-
     const parser = new XMLParser({
       ignoreNameSpace: true,
       ignoreAttributes: false,
     });
-
     const parsedData = parser.parse(data);
+
     const soapBody = parsedData.Envelope.Body;
-
-    // Log the parsed response to inspect the structure
-    console.log("SOAP Body:", soapBody);
-
-    // Extract the result (adjust based on actual response structure)
-    const cities = soapBody.dict_CitiesResponse.dict_CitiesResult;
+    const cities = soapBody.dict_CitiesResponse?.dict_CitiesResult || [];
 
     const nextResponse = NextResponse.json(cities);
-
-    // Cache-Control header for 1 hour
     nextResponse.headers.set(
       "Cache-Control",
       "public, max-age=3600, stale-while-revalidate=3600"
     );
-
     return nextResponse;
   } catch (error) {
     console.error("Error during SOAP request:", error);
-    return NextResponse.error();
+    return NextResponse.json(
+      { error: "Failed to fetch cities", details: error.message },
+      { status: 500 }
+    );
   }
 }
