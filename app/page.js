@@ -25,7 +25,7 @@ export default function Home() {
   }, []);
 
   const getCityList = async () => {
-    const res = await fetch("http://localhost:3000/api/coordinates", {
+    const res = await fetch("transit-hhbin4wlj-zhgentiiis-projects.vercel.app/api/coordinates", {
       method: "GET",
     });
 
